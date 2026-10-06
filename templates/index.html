@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunar Frost Weather</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <main class="building">
+
+        <section class="window">
+
+            <div class="sky">
+
+                <div class="sun"></div>
+                <div class="moon"></div>
+
+                <div class="cloud cloud-one"></div>
+                <div class="cloud cloud-two"></div>
+
+                <div class="city">
+                    <div class="building-one"></div>
+                    <div class="building-two"></div>
+                    <div class="building-three"></div>
+                    <div class="building-four"></div>
+                </div>
+
+            </div>
+
+            <div class="window-frame frame-top"></div>
+            <div class="window-frame frame-bottom"></div>
+            <div class="window-frame frame-left"></div>
+            <div class="window-frame frame-right"></div>
+
+            <div class="window-cross vertical"></div>
+            <div class="window-cross horizontal"></div>
+
+            <div class="glass-content">
+
+                <div class="brand">
+                    LUNAR FROST
+                </div>
+
+                <div class="clock">
+                    <span id="time">00:00:00</span>
+                    <span id="date">Loading...</span>
+                </div>
+
+                <div class="weather-card">
+
+                    <div class="search-box">
+
+                        <input
+                            type="text"
+                            id="cityInput"
+                            placeholder="Enter city..."
+                        >
+
+                        <button id="searchButton">
+                            Search
+                        </button>
+
+                    </div>
+
+                    <div id="weatherResult" class="weather-result">
+
+                        <div class="temperature">
+                            --°C
+                        </div>
+
+                        <div class="city-name">
+                            Search for a city
+                        </div>
+
+                        <div class="condition">
+                            Weather information will appear here
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div id="timePeriod" class="time-period">
+                    Loading...
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
