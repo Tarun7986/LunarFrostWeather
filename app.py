@@ -19,9 +19,10 @@ def get_weather():
 
     start = time.time()
 
-    city = request.json.get("city")
+    request_data = request.get_json(silent=True) or {}
+    city = request_data.get("city")
 
-    if not city:
+    if not isinstance(city, str) or not city.strip():
         return jsonify({"error": "City is required"}), 400
 
 
@@ -108,113 +109,186 @@ def get_weather():
     # LATITUDE / LONGITUDE → WEATHER
     # --------------------------------
 
-    weather_url = "https://api.open-meteo.com/v1/forecast"
-
-    weather_params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "current": "temperature_2m,weather_code",
-        "timezone": "auto"
-    }
-
-   
-
+    # WEATHER API
 
     try:
 
-        weather_response = session.get(
+        # API 1 — Open-Meteo
+        weather_url = "https://api.open-meteo.com/v1/forecast"
+
+        weather_params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "current": "temperature_2m,weather_code",
+            "timezone": "auto"
+        }
+
+        weather_response = requests.get(
             weather_url,
             params=weather_params,
-        
-            timeout=5 ,
+            timeout=5,
             proxies={
-        "http": None,
-        "https": None
-         }
+                "http": None,
+                "https": None
+            }
         )
 
         weather_response.raise_for_status()
 
-        print("WEATHER API:", time.time() - start, "seconds")
-
         weather_data = weather_response.json()
 
         temperature = weather_data["current"].get("temperature_2m")
-
         weather_code = weather_data["current"].get("weather_code")
 
-
         weather_descriptions = {
-
             0: "clear sky",
             1: "mainly clear",
             2: "partly cloudy",
             3: "overcast",
-
             45: "fog",
             48: "depositing rime fog",
-
             51: "light drizzle",
             53: "moderate drizzle",
             55: "dense drizzle",
-
             56: "light freezing drizzle",
             57: "dense freezing drizzle",
-
             61: "slight rain",
             63: "moderate rain",
             65: "heavy rain",
-
             66: "light freezing rain",
             67: "heavy freezing rain",
-
             71: "slight snow fall",
             73: "moderate snow fall",
             75: "heavy snow fall",
-
             77: "snow grains",
-
             80: "slight rain showers",
             81: "moderate rain showers",
             82: "violent rain showers",
-
             85: "slight snow showers",
             86: "heavy snow showers",
-
             95: "thunderstorm",
             96: "thunderstorm with slight hail",
             99: "thunderstorm with heavy hail"
         }
 
-
         if temperature is None or weather_code is None:
-
-            return jsonify({
-                "error": "Temperature or weather code not found in the response."
-            }), 500
-
+            raise requests.exceptions.RequestException(
+                "Temperature or weather code not found"
+            )
 
         description = weather_descriptions.get(
             weather_code,
             "unknown weather condition"
         )
 
-
         return jsonify({
-
             "city": city,
             "temperature": temperature,
             "weather_code": weather_code,
             "description": description
-
         })
 
+    except (
+        requests.exceptions.RequestException,
+        KeyError,
+        TypeError,
+        ValueError
+    ) as err:
 
-    except requests.exceptions.RequestException as err:
+        print("Open-Meteo failed:", err)
 
-        return jsonify({
-            "error": f"Weather API error: {err}"
-        }), 500
+        # API 2 — wttr.in
+        try:
+
+            fallback_url = f"https://wttr.in/{latitude},{longitude}"
+
+            fallback_response = requests.get(
+                fallback_url,
+                params={"format": "j1"},
+                headers={
+                    "User-Agent": "lunar-frost-weather-app/1.0"
+                },
+                timeout=2
+            )
+
+            fallback_response.raise_for_status()
+
+            fallback_data = fallback_response.json()
+
+            temperature = float(
+                fallback_data["current_condition"][0]["temp_C"]
+            )
+
+            description = (
+                fallback_data["current_condition"][0]
+                ["weatherDesc"][0]["value"]
+            )
+
+            return jsonify({
+                "city": city,
+                "temperature": temperature,
+                "weather_code": 0,
+                "description": description
+            })
+
+        except (
+            requests.exceptions.RequestException,
+            KeyError,
+            TypeError,
+            ValueError
+        ) as err2:
+
+            print("wttr.in failed:", err2)
+
+            # API 3 — WeatherAPI
+            try:
+
+                weatherapi_url = (
+                    "https://api.weatherapi.com/v1/current.json"
+                )
+
+                weatherapi_params = {
+                    "key": "ef192957b44b4640b4e55233260710",
+                    "q": f"{latitude},{longitude}",
+                    "aqi": "no"
+                }
+
+                weatherapi_response = requests.get(
+                    weatherapi_url,
+                    params=weatherapi_params,
+                    timeout=2
+                )
+
+                weatherapi_response.raise_for_status()
+
+                weatherapi_data = weatherapi_response.json()
+
+                temperature = weatherapi_data["current"]["temp_c"]
+
+                description = (
+                    weatherapi_data["current"]
+                    ["condition"]["text"]
+                )
+
+                return jsonify({
+                    "city": city,
+                    "temperature": temperature,
+                    "weather_code": 0,
+                    "description": description
+                })
+
+            except (
+                requests.exceptions.RequestException,
+                KeyError,
+                TypeError,
+                ValueError
+            ) as err3:
+
+                print("WeatherAPI failed:", err3)
+
+                return jsonify({
+                    "error": "Weather services are currently unavailable."
+                }), 503
 
 
 if __name__ == '__main__':
