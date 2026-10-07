@@ -1,5 +1,6 @@
 
 import time
+import os
 import requests
 from flask import Flask, render_template, request, jsonify
 
@@ -248,7 +249,7 @@ def get_weather():
                 )
 
                 weatherapi_params = {
-                    "key": "ef192957b44b4640b4e55233260710",
+                    "key": os.getenv("WEATHERAPI_KEY"),
                     "q": f"{latitude},{longitude}",
                     "aqi": "no"
                 }
